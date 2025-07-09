@@ -54,7 +54,7 @@ output "data_disk_attachment_ids" {
 
 output "vm_ssh_keys" {
   value = {
-    for k, vm in var.vms :
-    k => try(vm.ssh_key, null)
+    for k, vm in local.merged_vms :
+    k => vm.ssh_key
   }
 }
