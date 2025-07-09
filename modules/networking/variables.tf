@@ -16,8 +16,8 @@ variable "space" {
 
 variable "subnets" {
   type = list(object({
-    name            = string
-    address         = string
+    name    = string
+    address = string
   }))
 }
 

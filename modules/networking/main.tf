@@ -1,7 +1,3 @@
-locals {
-  vnet_name = "${var.project_name}-vnet"
-}
-
 resource "azurerm_virtual_network" "vnet" {
   name                = local.vnet_name
   address_space       = var.space
