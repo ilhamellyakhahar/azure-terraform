@@ -1,5 +1,5 @@
 resource "azurerm_public_ip" "public_ip" {
-  for_each = { for vm in local.merged_vms : vm.vm_name => vm if vm.public_ip }
+  for_each = { for vm in local.merged_vms : vm.vm_name => vm if try(vm.public_ip, true) }
   name                = "${each.value.vm_name}-public-ip"
   location            = each.value.location
   resource_group_name = each.value.rg_name
@@ -41,7 +41,7 @@ resource "azurerm_linux_virtual_machine" "vm" {
   os_disk {
     caching              = each.value.caching
     storage_account_type = each.value.disk_sku
-    disk_encryption_set_id = each.value.encryption
+    disk_encryption_set_id = try(each.value.encryption, null)
     diff_disk_settings {
       option = each.value.ephemeral ? "Local" : null
     }
@@ -49,25 +49,25 @@ resource "azurerm_linux_virtual_machine" "vm" {
 
   admin_ssh_key {
     username   = each.value.vm_user
-    public_key = each.value.ssh_key
+    public_key = try(each.value.ssh_key, null)
   }
 
-  disable_password_authentication = each.value.ssh_key != null
+  disable_password_authentication = try(each.value.ssh_key, null) != null
 }
 
 resource "azurerm_managed_disk" "data_disk" {
-  for_each = { for vm in local.merged_vms : vm.vm_name => vm if vm.disk_name != null && vm.disk_size != null }
+  for_each = { for vm in local.merged_vms : vm.vm_name => vm if try(vm.disk_name, null) != null && try(vm.disk_size, null) != null }
   name                = each.value.disk_name
   location            = each.value.location
   resource_group_name = each.value.rg_name
   storage_account_type = each.value.disk_sku
   create_option       = "Empty"
   disk_size_gb        = each.value.disk_size
-  disk_encryption_set_id = each.value.encryption
+  disk_encryption_set_id = try(each.value.encryption, null)
 }
 
 resource "azurerm_virtual_machine_data_disk_attachment" "attach_data_disk" {
-  for_each = { for vm in local.merged_vms : vm.vm_name => vm if vm.disk_name != null && vm.disk_size != null }
+  for_each = { for vm in local.merged_vms : vm.vm_name => vm if try(vm.disk_name, null) != null && try(vm.disk_size, null) != null }
   managed_disk_id     = azurerm_managed_disk.data_disk[each.key].id
   virtual_machine_id  = azurerm_linux_virtual_machine.vm[each.key].id
   lun                 = each.value.lun
@@ -75,7 +75,7 @@ resource "azurerm_virtual_machine_data_disk_attachment" "attach_data_disk" {
 }
 
 resource "azurerm_network_security_group" "nsg" {
-  for_each = { for vm in local.merged_vms : vm.vm_name => vm if vm.nsg_name != null }
+  for_each = { for vm in local.merged_vms : vm.vm_name => vm if try(vm.nsg_name, null) != null }
   name                = each.value.nsg_name
   location            = each.value.location
   resource_group_name = each.value.rg_name
@@ -97,7 +97,7 @@ resource "azurerm_network_security_group" "nsg" {
 }
 
 resource "azurerm_network_interface_security_group_association" "nic_assoc" {
-  for_each = { for vm in local.merged_vms : vm.vm_name => vm if vm.nsg_name != null }
+  for_each = { for vm in local.merged_vms : vm.vm_name => vm if try(vm.nsg_name, null) != null }
   network_interface_id      = azurerm_network_interface.nic[each.key].id
   network_security_group_id = azurerm_network_security_group.nsg[each.key].id
 }
